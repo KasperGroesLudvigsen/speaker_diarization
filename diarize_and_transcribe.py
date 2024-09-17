@@ -1,33 +1,41 @@
 # instantiate the pipeline
 from pyannote.audio import Pipeline
-import pyannote.core.json
 import re
 import json
 from pydub import AudioSegment
 
-
-import yaml
-
-with open(local_model_path) as stream:
-    try:
-        print(yaml.safe_load(stream))
-    except yaml.YAMLError as exc:
-        print(exc)
-import os
-##########
-
-file = open("token.txt", "r")
-token = file.read()
-print(token)
-file.close()
-
 local_model_path = "local_model/config.yaml"
 
-#PIPELINE = Pipeline.from_pretrained("pyannote/speaker-diarization-3.1", use_auth_token=token)
 PIPELINE = Pipeline.from_pretrained(local_model_path)
 
-res = PIPELINE("data/input/audio2.wav")
-res.__str__()
+#res = PIPELINE("data/input/audio2.wav")
+#res.__str__()
+
+def convert_to_json(diarization_str: str) -> list[dict]:
+  """
+  Convert the diarization pipeline's string output to a list of dicts
+
+  Example string output: 
+  '[ 00:00:01.330 -->  00:00:02.899] A SPEAKER_00\n[ 00:00:03.389 -->  00:00:04.114] B SPEAKER_00\n[ 00:00:05.177 -->  00:00:06.949] C SPEAKER_01\n[ 00:00:08.215 -->  00:00:10.257] D SPEAKER_00\n[ 00:00:11.269 -->  00:00:12.974] E SPEAKER_01'
+  """
+  # Regular expression to match the pattern
+  pattern = r'\[\s*([\d:.]+)\s*-->\s*([\d:.]+)\s*\]\s*(\w+)\s*(SPEAKER_\d{2})'
+
+  # Find all matches in the string
+  matches = re.findall(pattern, diarization_str)
+
+  # Convert the matches into a list of dictionaries
+  json_data = []
+  for start, end, text, speaker in matches:
+      json_data.append({
+          "start_time": start,
+          "end_time": end,
+          "text": text,
+          "speaker": speaker
+      })
+
+  return json_data
+
 
 def combine_consecutive_speakers(json_data: list[dict]):
     """
@@ -45,16 +53,12 @@ def combine_consecutive_speakers(json_data: list[dict]):
             merged_data.append(entry.copy())  # Append a copy of the entry to avoid modifying the original data
         else:
             # If the speakers are the same, merge the text and update the end_time
-            merged_data[-1]["end_time"] = entry["end_time"]  # Update the end_time
-            merged_data[-1]["text"] += " " + entry["text"]  # Combine the texts
-
-    # Print the merged data as JSON
-    #json_output = json.dumps(merged_data, indent=4)
-    #print(json_output)
+            merged_data[-1]["end_time"] = entry["end_time"]
+            merged_data[-1]["text"] += " " + entry["text"]  
 
     return merged_data
 
-def time_to_milliseconds(time_str: str):
+def time_to_milliseconds(time_str: str) -> int:
     """
     Paynnote time stamps look like this: '00:00:01.330' and needs to be converted to ms
     """
@@ -117,6 +121,7 @@ def diarize_and_transcribe(file_path):
     # Consecutive elements in diarization_list may be from the same speaker. Combine those
     diarization_list = combine_consecutive_speakers(diarization_list)
 
+    # add key containing transcription of each segment
     diarization_and_transcription = transcribe(diarization_list)
 
     return diarization_and_transcription
