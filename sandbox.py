@@ -1,6 +1,5 @@
 # instantiate the pipeline
 from pyannote.audio import Pipeline
-import pyannote.core.json
 import re
 import json
 from pydub import AudioSegment
@@ -14,10 +13,11 @@ file.close()
 pipeline = Pipeline.from_pretrained("pyannote/speaker-diarization-3.1", use_auth_token=token)
 
 # run the pipeline on an audio file
-diarization = pipeline("data/input/audio2.wav")
+pipeline(audio_file_path)
+diarization = pipeline("data/input/audio4.wav")
 
 # dump the diarization output to disk using RTTM format
-with open("data/output/audio2.rttm", "w") as rttm:
+with open("data/output/audio4.rttm", "w") as rttm:
     diarization.write_rttm(rttm)
 
 diarization.__str__()

@@ -6,7 +6,7 @@ class FileProcessor:
     def __init__(self, folder_path):
         self.folder_path = folder_path
         self.file_list = []
-        self.update_interval = 300  # 5 minutes (300 seconds)
+        self.update_interval = 120  # 2 mins
         self.lock = threading.Lock()
 
         # Start a background thread to update the file list every 5 minutes
@@ -39,7 +39,8 @@ class FileProcessor:
             with self.lock:
                 if not self.file_list:
                     print("No files to process.")
-                    break
+                    time.sleep(60)
+                    continue
 
                 # Pop the first file (oldest) from the list
                 file_to_process = self.file_list.pop(0)

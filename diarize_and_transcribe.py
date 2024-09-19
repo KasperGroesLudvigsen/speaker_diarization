@@ -4,6 +4,8 @@ import re
 import json
 from pydub import AudioSegment
 
+# TODO: Convert m4a to wav
+
 local_model_path = "local_model/config.yaml"
 
 PIPELINE = Pipeline.from_pretrained(local_model_path)
@@ -75,12 +77,16 @@ def call_transcribe_api():
     return "lorem ipsum"
 
 def transcribe(diarization_list: list[dict], audio_file_path):
+    """
+    Splits audio file into segments according to the diarization time stamps
+    and transcribes each segment
+    """
 
     diarization_list_w_transcription = []
 
     audio = AudioSegment.from_file(audio_file_path)
 
-    for i, segment in enumerate(diarization_list):
+    for segment in diarization_list:
 
         start_time = time_to_milliseconds(segment["start_time"])
 
